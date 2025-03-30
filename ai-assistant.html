@@ -1,0 +1,2779 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0f172a;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        .window-titlebar {
+            -webkit-app-region: drag;
+            background: #1e293b;
+            color: #ffffff;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            min-width: 400px;
+        }
+        .window-controls {
+            -webkit-app-region: no-drag;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .window-control-button {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .minimize-button {
+            background-color: #1e293b;
+            color: #ffffff;
+        }
+        .close-button {
+            background-color: #1e293b;
+            color: #ffffff;
+        }
+        .window-control-button:hover {
+            background-color: #334155;
+        }
+        .close-button:hover {
+            background-color: #ef4444;
+        }
+        .chat-container {
+            min-width: 400px;
+            height: calc(100vh - 60px);
+            display: flex;
+            flex-direction: column;
+        }
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .message {
+            max-width: 80%;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+        }
+        .user-message {
+            background-color: #1e293b;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .assistant-message {
+            background-color: #1e40af;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .input-container {
+            padding: 1rem;
+            background-color: #1e293b;
+            border-top: 1px solid #334155;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .input-field {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: #ffffff;
+            font-size: 0.95rem;
+            resize: none;
+            min-height: 40px;
+            max-height: 120px;
+        }
+        .send-button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .send-button:hover {
+            background-color: #2563eb;
+        }
+        .send-button:disabled {
+            background-color: #64748b;
+            cursor: not-allowed;
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #1e40af;
+            border-radius: 12px;
+            align-self: flex-start;
+            margin-bottom: 0.5rem;
+        }
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            animation: typing 1s infinite;
+        }
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .titlebar {
+            height: 40px;
+            background: rgba(30, 41, 59, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            border-radius: 20px 20px 0 0;
+            -webkit-app-region: drag;
+        }
+        .cancel-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 1000;
+        }
+        .cancel-button:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: translateY(-1px);
+        }
+        .cancel-button i {
+            font-size: 1rem;
+        }
+        /* Menu Bar Styles */
+        .menu-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            background: rgba(30, 41, 59, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 400px;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            min-width: 80px;
+            justify-content: center;
+        }
+        .menu-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        .menu-item.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+        .menu-item i {
+            font-size: 1rem;
+        }
+        /* Service Sections */
+        .service-section {
+            display: none;
+            height: calc(100vh - 160px);
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        .service-section.active {
+            display: block;
+        }
+        /* Calendar Styles */
+        .calendar-section {
+            padding: 1rem;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .calendar-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .calendar-nav button {
+            padding: 0.5rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: none;
+            border-radius: 6px;
+            color: #3b82f6;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-nav button:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .calendar-weekday {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #94a3b8;
+            padding: 0.5rem;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .calendar-day.today {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .calendar-day.has-events::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            width: 4px;
+            height: 4px;
+            background: #3b82f6;
+            border-radius: 50%;
+        }
+
+        .events-list {
+            margin-top: 1rem;
+        }
+
+        .event-item {
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .event-item:hover {
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .event-local {
+            border-left: 3px solid #3b82f6; /* Blue indicator for local events */
+        }
+        
+        .event-google {
+            border-left: 3px solid #10b981; /* Green indicator for Google events */
+        }
+        
+        .storage-indicator {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .event-time {
+            font-size: 0.875rem;
+            color: #3b82f6;
+            margin-bottom: 0.25rem;
+        }
+
+        .event-title {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .event-description {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+
+        .loading-calendar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #94a3b8;
+        }
+
+        .calendar-day.active {
+            background: rgba(59, 130, 246, 0.3) !important;
+            border: 2px solid #3b82f6;
+        }
+
+        .event-location, .event-attendees, .event-conference {
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+
+        .event-conference a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            background: rgba(59, 130, 246, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .event-conference a:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .browser-section {
+            padding: 1rem;
+        }
+
+        .browser-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .browser-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .recommendations-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding: 1rem;
+        }
+        
+        .category-section {
+            background-color: #1a2234;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .category-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .category-title {
+            color: #4a7dfc;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid #2a3146;
+            padding-bottom: 0.5rem;
+        }
+        
+        .category-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .link-item {
+            padding: 0.75rem;
+            background-color: #212a3e;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+        
+        .link-item:hover {
+            background-color: #2a334a;
+        }
+        
+        .link-item a {
+            color: #e1e7ff;
+            text-decoration: none;
+            font-size: 1rem;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        
+        .link-item a:hover {
+            color: #5e9eff;
+            text-decoration: underline;
+        }
+        
+        .link-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #99a1b8;
+            margin-top: 0.25rem;
+        }
+        
+        .link-source {
+            color: #8592b5;
+        }
+        
+        .link-score {
+            background-color: #2b3651;
+            color: #7fb5ff;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+        
+        .no-recommendations {
+            color: #8592b5;
+            text-align: center;
+            padding: 2rem;
+            background-color: #1a2234;
+            border-radius: 8px;
+            font-style: italic;
+        }
+
+        /* Transition effect for recommendations */
+        .category-section {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .recommendation-card {
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 8px;
+            padding: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .recommendation-card:hover {
+            background: rgba(30, 41, 59, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .recommendation-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #3b82f6;
+            margin-bottom: 0.5rem;
+        }
+
+        .recommendation-description {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+        }
+
+        .recommendation-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .recommendation-meta i {
+            margin-right: 0.25rem;
+        }
+
+        .loading-recommendations {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #94a3b8;
+        }
+
+        .recommendations-section {
+            padding: 15px;
+            color: #fff;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        #refresh-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #refresh-button:hover {
+            background: #1976D2;
+        }
+
+        .category-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .category-title {
+            color: #2196F3;
+            font-size: 14px;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .link-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .link-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .link-item a {
+            color: #fff;
+            text-decoration: none;
+            display: block;
+            font-size: 13px;
+        }
+
+        .no-recommendations {
+            text-align: center;
+            color: #aaa;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .email-content {
+            padding: 20px;
+            color: #fff;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #8b9cb3;
+            font-size: 14px;
+        }
+
+        .dark-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #2a2f3a;
+            border-radius: 4px;
+            background-color: #1e2028;
+            color: #fff;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .dark-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .dark-input::placeholder {
+            color: #4b5563;
+        }
+
+        .save-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.2s;
+        }
+
+        .save-btn:hover {
+            background: #2563eb;
+        }
+        
+        .email-result {
+            margin-top: 20px;
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .email-content-box {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 6px;
+            padding: 12px;
+            color: #e2e8f0;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .draft-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.2s;
+        }
+        
+        .draft-btn:hover {
+            background: #059669;
+        }
+        
+        .draft-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* Reply Section Styles */
+        .reply-content {
+            padding: 20px;
+            color: #fff;
+        }
+        
+        select.dark-input {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px;
+        }
+        
+        /* Email List Styles */
+        .emails-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: #94a3b8;
+        }
+        
+        .loading-spinner {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .emails-status {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            text-align: right;
+            padding-right: 0.5rem;
+        }
+        
+        .emails-list {
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+        }
+        
+        .email-item {
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .email-item:hover {
+            background: rgba(30, 41, 59, 0.8);
+            transform: translateY(-1px);
+        }
+        
+        .email-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+        
+        .email-sender {
+            font-weight: 500;
+            max-width: 70%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .email-time {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+        
+        .email-subject {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .email-preview {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .refresh-btn {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .refresh-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+        
+        /* Email Details Styles */
+        .email-details {
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .email-details-header {
+            margin-bottom: 1rem;
+        }
+        
+        .back-btn {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .back-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+        }
+        
+        .email-details-content {
+            padding: 1rem;
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .email-details-subject {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        .email-details-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .email-details-from, .email-details-date {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+        
+        .email-details-body {
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            max-height: 450px;
+            overflow-y: auto;
+        }
+        
+        .reply-container {
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .reply-textarea {
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            resize: vertical;
+        }
+        
+        .send-reply-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .send-reply-btn:hover {
+            background: #059669;
+        }
+        
+        .no-emails {
+            text-align: center;
+            padding: 2rem;
+            color: #94a3b8;
+        }
+        
+        /* Calendar Event Creation Styles */
+        .event-creation-section {
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #event-description {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 6px;
+            resize: vertical;
+        }
+        
+        #create-event-btn {
+            background: #3b82f6;
+            transition: all 0.2s ease;
+        }
+        
+        #create-event-btn:hover {
+            background: #2563eb;
+        }
+        
+        #create-event-btn:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+        
+        #event-creation-status {
+            color: #94a3b8;
+        }
+        
+        #event-details-result {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #event-details-content {
+            color: #e2e8f0;
+            line-height: 1.5;
+        }
+
+        .calendar-day.new-event {
+            animation: pulse-event 2s infinite;
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+        
+        @keyframes pulse-event {
+            0% { transform: scale(1); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.7); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5); }
+            100% { transform: scale(1); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.7); }
+        }
+
+        .event-item.new-event {
+            border-left: 4px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+            animation: highlight-event 3s ease-in-out;
+        }
+        
+        @keyframes highlight-event {
+            0% { background: rgba(59, 130, 246, 0.3); }
+            50% { background: rgba(59, 130, 246, 0.15); }
+            100% { background: rgba(59, 130, 246, 0.05); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Chat Container -->
+    <div class="chat-container">
+        <!-- Window Titlebar -->
+        <div class="window-titlebar">
+            <div class="flex items-center">
+                <i class="fas fa-robot mr-2 text-blue-400"></i>
+                <span class="font-medium">AI Assistant</span>
+            </div>
+            <div class="window-controls">
+                <button id="openMainAppBtn" class="mr-2 px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-sm flex items-center">
+                    <i class="fas fa-external-link-alt mr-1"></i>
+                    Main App
+                </button>
+                <div class="window-control-button minimize-button" id="minimizeBtn">
+                    <i class="fas fa-minus"></i>
+                </div>
+                <div class="window-control-button close-button" id="closeBtn">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- After window titlebar, add menu bar -->
+        <div class="menu-bar">
+            <div class="menu-item active" data-section="email">
+                <i class="fas fa-envelope"></i>
+                <span>Email</span>
+            </div>
+            <div class="menu-item" data-section="calendar">
+                <i class="fas fa-calendar"></i>
+                <span>Calendar</span>
+            </div>
+            <div class="menu-item" data-section="browser">
+                <i class="fas fa-globe"></i>
+                <span>Browser</span>
+            </div>
+            <div class="menu-item" data-section="reply">
+                <i class="fas fa-reply"></i>
+                <span>Reply</span>
+            </div>
+        </div>
+
+        <!-- Remove chat section and make email section active -->
+        <div id="email-section" class="service-section active">
+            <div class="email-content">
+                <h2>Email Management</h2>
+                <div class="input-group">
+                    <label for="email-to">To:</label>
+                    <input type="email" id="email-to" class="dark-input" placeholder="Enter recipient email">
+                </div>
+                <div class="input-group">
+                    <label for="email-prompt">Prompt:</label>
+                    <input type="text" id="email-prompt" class="dark-input" placeholder="Enter your prompt">
+                </div>
+                <div class="button-group">
+                    <button id="save-email-data" class="save-btn">Generate Email</button>
+                    <button id="save-gmail-draft" class="draft-btn" disabled>Save to Gmail Draft</button>
+                </div>
+                <div id="email-result" class="email-result mt-4" style="display: none;">
+                    <h3>Generated Email:</h3>
+                    <div id="email-content" class="email-content-box"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="calendar-section" class="service-section">
+            <div class="calendar-section">
+                <div class="calendar-header">
+                    <h2 class="calendar-title">Calendar</h2>
+                    <div class="calendar-nav">
+                        <button id="prevMonth">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button id="nextMonth">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="calendar-grid" id="calendarGrid">
+                    <div class="calendar-weekday">Sun</div>
+                    <div class="calendar-weekday">Mon</div>
+                    <div class="calendar-weekday">Tue</div>
+                    <div class="calendar-weekday">Wed</div>
+                    <div class="calendar-weekday">Thu</div>
+                    <div class="calendar-weekday">Fri</div>
+                    <div class="calendar-weekday">Sat</div>
+                </div>
+                
+                <!-- Add event creation section -->
+                <div class="event-creation-section mt-4 p-4 bg-gray-800 rounded-lg">
+                    <h3 class="text-lg font-medium mb-3">Create Calendar Event</h3>
+                    <div class="input-group mb-3">
+                        <label for="event-description" class="block mb-1">Describe your event:</label>
+                        <textarea id="event-description" class="dark-input w-full p-2" rows="3" 
+                            placeholder="Example: Schedule a team meeting next Monday at 3pm to discuss the new project"></textarea>
+                    </div>
+                    <div class="flex justify-between">
+                    <button id="create-event-btn" class="save-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                        <i class="fas fa-calendar-plus mr-2"></i>Create Event
+                    </button>
+                        <button id="sync-events-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded ml-2">
+                            <i class="fas fa-sync mr-2"></i>Sync with Google
+                        </button>
+                    </div>
+                    <div id="event-creation-status" class="mt-3 hidden">
+                        <div id="event-creation-spinner" class="inline-block mr-2">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                        <span id="event-creation-message">Creating event...</span>
+                    </div>
+                    <div id="event-details-result" class="mt-4 p-3 bg-gray-700 rounded hidden">
+                        <h4 class="text-md font-medium mb-2">Event Details:</h4>
+                        <div id="event-details-content"></div>
+                        <div id="event-sync-status" class="mt-2 text-sm">
+                            <span class="sync-status"></span>
+                        </div>
+                        <div id="event-link-container" class="mt-3">
+                            <a id="event-link" href="#" target="_blank" class="text-blue-400 hover:text-blue-300">
+                                <i class="fas fa-external-link-alt mr-1"></i>View Event
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="events-list-header flex justify-between items-center mt-6 mb-2">
+                    <h3 class="text-lg font-medium">Upcoming Events</h3>
+                    <div class="flex">
+                        <div class="storage-indicator flex items-center mr-4">
+                            <span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+                            <span class="text-sm text-gray-300">Local</span>
+                        </div>
+                        <div class="storage-indicator flex items-center">
+                            <span class="w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+                            <span class="text-sm text-gray-300">Google</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="events-list" id="eventsList">
+                    <div class="loading-calendar">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        Loading calendar...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="browser-section" class="service-section">
+            <div class="browser-section">
+                <div class="browser-header">
+                    <h2 class="browser-title">Browser Insights</h2>
+                    <button id="refresh-button" class="refresh-btn">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div class="recommendations-section">
+                    <h3>Personalized Recommendations</h3>
+                    <div id="recommendations-container" class="recommendations-container">
+                        <div class="no-recommendations">Loading recommendations...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Reply section -->
+        <div id="reply-section" class="service-section">
+            <div class="reply-content">
+                <h2>Email Inbox</h2>
+                <div class="emails-header">
+                    <span>Recent emails from the past day</span>
+                    <button id="refresh-emails" class="refresh-btn">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div id="emails-status" class="emails-status">
+                    <span id="emails-status-text">Loading emails...</span>
+                </div>
+                <div id="emails-loading" class="loading-container">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                    <p>Loading emails...</p>
+                </div>
+                <div id="emails-list" class="emails-list">
+                    <!-- Emails will be loaded here -->
+                </div>
+                <div id="email-details" class="email-details" style="display: none;">
+                    <div class="email-details-header">
+                        <button id="back-to-list" class="back-btn">
+                            <i class="fas fa-arrow-left"></i>
+                            Back to list
+                        </button>
+                    </div>
+                    <div class="email-details-content">
+                        <div class="email-details-subject" id="email-subject"></div>
+                        <div class="email-details-meta">
+                            <div class="email-details-from" id="email-from"></div>
+                            <div class="email-details-date" id="email-date"></div>
+                        </div>
+                        <div class="email-details-body" id="email-body"></div>
+                    </div>
+                    <div class="reply-container">
+                        <h3>Compose Reply</h3>
+                        <div class="input-group">
+                            <label for="reply-tone">Tone:</label>
+                            <select id="reply-tone" class="dark-input">
+                                <option value="professional">Professional</option>
+                                <option value="friendly">Friendly</option>
+                                <option value="concise">Concise</option>
+                                <option value="detailed">Detailed</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="reply-prompt">Prompt:</label>
+                            <input type="text" id="reply-prompt" class="dark-input" placeholder="Brief description or instructions for your reply">
+                        </div>
+                        <button id="generate-reply" class="save-btn">Generate AI Reply</button>
+                        <textarea id="reply-text" class="dark-input reply-textarea" 
+                                rows="6" placeholder="Your reply..."></textarea>
+                        <button id="send-reply" class="send-reply-btn">
+                            <i class="fas fa-paper-plane"></i>
+                            Send Reply
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const { ipcRenderer } = require('electron');
+        const { shell } = require('electron');
+        const fs = require('fs');
+        const path = require('path');
+        const { spawn } = require('child_process');
+
+        // Menu bar functionality
+        const menuItems = document.querySelectorAll('.menu-item');
+        const sections = document.querySelectorAll('.service-section');
+        let currentTab = 'email';  // Track current tab
+
+        menuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // Remove active class from all items
+                menuItems.forEach(i => i.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+
+                // Add active class to clicked item
+                item.classList.add('active');
+                const section = document.getElementById(`${item.dataset.section}-section`);
+                if (section) {
+                    section.classList.add('active');
+                    // Load recommendations only when browser section is active
+                    if (item.dataset.section === 'browser') {
+                        loadRecommendations();
+                    }
+                    
+                    // Update current tab
+                    currentTab = item.dataset.section;
+                }
+            });
+        });
+
+        // Initialize with email tab when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set email as the default active tab
+            menuItems.forEach(i => i.classList.remove('active'));
+            sections.forEach(s => s.classList.remove('active'));
+            
+            const emailMenuItem = document.querySelector('.menu-item[data-section="email"]');
+            if (emailMenuItem) emailMenuItem.classList.add('active');
+            
+            const emailSection = document.getElementById('email-section');
+            if (emailSection) emailSection.classList.add('active');
+        });
+
+        // Window control buttons
+        document.getElementById('minimizeBtn').addEventListener('click', () => {
+            ipcRenderer.send('minimize-ai-window');
+        });
+
+        document.getElementById('closeBtn').addEventListener('click', () => {
+            ipcRenderer.send('close-ai-window');
+        });
+
+        // Open main app button
+        document.getElementById('openMainAppBtn').addEventListener('click', () => {
+            ipcRenderer.send('open-main-app');
+        });
+
+        // Chat functionality removed
+
+        // Calendar functionality
+        let currentDate = new Date();
+        let events = JSON.parse(localStorage.getItem('localCalendarEvents') || '[]');
+
+        // Load calendar when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial calendar render
+            renderCalendar();
+        });
+
+        async function loadGoogleCalendar() {
+            try {
+                // Using local storage instead of Google Calendar
+                events = JSON.parse(localStorage.getItem('localCalendarEvents') || '[]');
+                renderCalendar();
+                renderEvents();
+            } catch (error) {
+                console.error('Error loading calendar:', error);
+                document.getElementById('eventsList').innerHTML = `
+                    <div class="event-item">
+                        <div class="event-title text-red-500">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            Error loading calendar
+                        </div>
+                        <div class="event-description">
+                            Please try refreshing the page
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // Update calendar title with current month and year
+            document.querySelector('.calendar-title').textContent = 
+                new Date(year, month).toLocaleDateString('en-US', { 
+                    month: 'long', 
+                    year: 'numeric' 
+                });
+
+            // Clear existing days except weekday headers
+            const weekdays = Array.from(grid.querySelectorAll('.calendar-weekday'));
+            grid.innerHTML = '';
+            weekdays.forEach(day => grid.appendChild(day));
+
+            // Get first day of month and total days
+            const firstDay = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+
+            // Add empty cells for days before first of month
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day empty';
+                grid.appendChild(emptyDay);
+            }
+
+            // Add days of month
+            for (let day = 1; day <= totalDays; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.textContent = day;
+
+                // Check if day has events
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const hasEvents = events.some(event => {
+                    const eventStartDate = event.start?.date || event.start?.dateTime?.split('T')[0];
+                    const eventEndDate = event.end?.date || event.end?.dateTime?.split('T')[0];
+                    
+                    if (event.start?.date) { // All-day event
+                        const start = new Date(event.start.date);
+                        const end = new Date(event.end.date);
+                        const current = new Date(dateStr);
+                        return current >= start && current < end;
+                    } else {
+                        return eventStartDate === dateStr;
+                    }
+                });
+
+                if (hasEvents) {
+                    dayElement.classList.add('has-events');
+                }
+
+                // Check if day is today
+                const today = new Date();
+                if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+                    dayElement.classList.add('today');
+                }
+
+                // Add click handler
+                dayElement.addEventListener('click', () => {
+                    // Remove active class from all days
+                    document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('active'));
+                    // Add active class to clicked day
+                    dayElement.classList.add('active');
+                    // Render events for selected date
+                    renderEvents(new Date(year, month, day));
+                });
+
+                grid.appendChild(dayElement);
+            }
+
+            // Render events for current date
+            renderEvents(new Date());
+        }
+
+        function renderEvents(selectedDate = new Date(), newEventId = null) {
+            const eventsList = document.getElementById('eventsList');
+            eventsList.innerHTML = '';
+
+            // Format the selected date to match Calendar date format
+            const dateStr = selectedDate.toISOString().split('T')[0];
+            
+            // Filter events for the selected date
+            const dayEvents = events.filter(event => {
+                if (!event.start || !event.end) return false;
+                
+                const eventStartDate = event.start.date || event.start.dateTime?.split('T')[0];
+                const eventEndDate = event.end.date || event.end.dateTime?.split('T')[0];
+                
+                if (event.start.date) { // All-day event
+                    const start = new Date(event.start.date);
+                    const end = new Date(event.end.date);
+                    const current = new Date(dateStr);
+                    return current >= start && current < end;
+                } else { // Time-specific event
+                    return eventStartDate === dateStr;
+                }
+            });
+
+            if (dayEvents.length === 0) {
+                eventsList.innerHTML = `
+                    <div class="event-item">
+                        <div class="event-title">No events</div>
+                        <div class="event-description">No events scheduled for ${selectedDate.toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        })}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort events by start time
+            dayEvents.sort((a, b) => {
+                const aTime = a.start.dateTime || a.start.date;
+                const bTime = b.start.dateTime || b.start.date;
+                return new Date(aTime) - new Date(bTime);
+            });
+
+            // Add each event to the list
+            dayEvents.forEach(event => {
+                const eventElement = document.createElement('div');
+                eventElement.className = 'event-item';
+                
+                // Check if this is the newly created event
+                if (newEventId && event.id === newEventId) {
+                    eventElement.classList.add('new-event');
+                }
+                
+                // Determine if event is synced to Google based on ID format
+                const isLocal = event.id?.startsWith('local_');
+                
+                // Add indicator class
+                if (isLocal) {
+                    eventElement.classList.add('event-local');
+                } else {
+                    eventElement.classList.add('event-google');
+                }
+                
+                // Format time display
+                let timeDisplay = 'All day';
+                if (event.start.dateTime) {
+                    const startTime = new Date(event.start.dateTime).toLocaleTimeString('en-US', {
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true 
+                    });
+                    const endTime = new Date(event.end.dateTime).toLocaleTimeString('en-US', {
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true 
+                    });
+                    timeDisplay = `${startTime} - ${endTime}`;
+                }
+
+                // Format description
+                const description = event.description ? event.description.replace(/\n/g, '<br>') : '';
+                
+                // Format location
+                const location = event.location ? `
+                    <div class="event-location">
+                        <i class="fas fa-map-marker-alt text-gray-400 mr-1"></i> ${event.location}
+                    </div>` : '';
+                
+                // Format attendees
+                let attendees = '';
+                if (event.attendees && event.attendees.length > 0) {
+                    const attendeeList = event.attendees.map(a => a.email).join(', ');
+                    attendees = attendeeList;
+                }
+                
+                // Format conference link
+                let conferenceLink = null;
+                if (event.hangoutLink) {
+                    conferenceLink = event.hangoutLink;
+                } else if (event.conferenceData && event.conferenceData.entryPoints) {
+                    for (const entry of event.conferenceData.entryPoints) {
+                        if (entry.uri) {
+                            conferenceLink = entry.uri;
+                            break;
+                        }
+                    }
+                }
+                
+                const conferenceDisplay = conferenceLink ? `
+                    <div class="event-conference">
+                        <a href="#" onclick="ipcRenderer.invoke('open-external-url', '${conferenceLink}')" class="text-blue-400 hover:text-blue-300">
+                            <i class="fas fa-video"></i> Join meeting
+                        </a>
+                    </div>` : '';
+
+                // Add storage indicator based on event source
+                const storageIndicator = `
+                    <span class="storage-indicator w-3 h-3 rounded-full ${isLocal ? 'bg-blue-500' : 'bg-green-500'} ml-2" 
+                          title="${isLocal ? 'Stored locally' : 'Synced with Google Calendar'}"></span>
+                `;
+
+                // Add delete button
+                const deleteButton = `
+                    <button class="delete-event-btn text-red-400 hover:text-red-300 ml-2" data-event-id="${event.id}">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+
+                eventElement.innerHTML = `
+                    <div class="flex justify-between items-center">
+                    <div class="event-time">${timeDisplay}</div>
+                        <div class="event-actions flex items-center">
+                            ${storageIndicator}
+                            ${deleteButton}
+                        </div>
+                    </div>
+                    <div class="event-title font-medium text-lg mb-2">${event.summary || 'Untitled Event'}</div>
+                    ${description ? `<div class="event-description mb-3 text-gray-300">${description}</div>` : ''}
+                    ${location ? `<div class="event-location mb-2">${location}</div>` : ''}
+                    ${attendees ? `<div class="event-attendees mb-2">👥 ${attendees}</div>` : ''}
+                    ${conferenceDisplay}
+                `;
+
+                eventsList.appendChild(eventElement);
+                
+                // Add event listener to delete button
+                const deleteBtn = eventElement.querySelector('.delete-event-btn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        if (confirm('Are you sure you want to delete this event?')) {
+                            try {
+                                const eventId = deleteBtn.dataset.eventId;
+                                // Delete event locally instead of using ipcRenderer
+                                const existingEvents = JSON.parse(localStorage.getItem('localCalendarEvents') || '[]');
+                                const filteredEvents = existingEvents.filter(event => event.id !== eventId);
+                                localStorage.setItem('localCalendarEvents', JSON.stringify(filteredEvents));
+                                events = filteredEvents;
+                                
+                                // Reload calendar
+                                renderCalendar();
+                                renderEvents();
+                            } catch (error) {
+                                console.error('Error deleting event:', error);
+                                alert('Failed to delete event. See console for details.');
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // Calendar navigation
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        // Load calendar when switching to calendar section
+        menuItems.forEach(item => {
+            if (item.dataset.section === 'calendar') {
+                item.addEventListener('click', loadGoogleCalendar);
+            }
+        });
+
+        async function loadTopRecommendations() {
+            try {
+                const recommendations = await window.electron.ipcRenderer.invoke('get-top-recommendations');
+                const container = document.getElementById('topRecommendations');
+                
+                if (!recommendations || recommendations.length === 0) {
+                    container.innerHTML = `
+                        <div class="recommendation-card">
+                            <div class="recommendation-title">No recommendations available</div>
+                            <div class="recommendation-description">
+                                We're still learning about your preferences. Check back later for personalized recommendations.
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Create HTML for recommendations
+                const recommendationsHTML = recommendations.map(rec => `
+                    <div class="recommendation-card">
+                        <div class="recommendation-title">${rec.title}</div>
+                        <div class="recommendation-category">${rec.category}</div>
+                        <div class="recommendation-description">${rec.description || 'No description available'}</div>
+                        <div class="recommendation-confidence">Confidence: ${rec.confidence}%</div>
+                        <a href="${rec.url}" target="_blank" class="recommendation-link">Visit Site</a>
+                    </div>
+                `).join('');
+
+                container.innerHTML = recommendationsHTML;
+            } catch (error) {
+                console.error('Error loading recommendations:', error);
+                const container = document.getElementById('topRecommendations');
+                container.innerHTML = `
+                    <div class="recommendation-card">
+                        <div class="recommendation-title">Error loading recommendations</div>
+                        <div class="recommendation-description">
+                            There was an error loading your recommendations. Please try again later.
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function createCategoryChart(categories) {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categories),
+                    datasets: [{
+                        data: Object.values(categories),
+                        backgroundColor: [
+                            '#7aa2f7',
+                            '#2ac3de',
+                            '#bb9af7',
+                            '#9ece6a',
+                            '#f7768e',
+                            '#e0af68'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#a9b1d6'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Browsing Categories Distribution',
+                            color: '#c0caf5'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load recommendations when switching to browser section
+        menuItems.forEach(item => {
+            if (item.dataset.section === 'browser') {
+                item.addEventListener('click', loadTopRecommendations);
+            }
+        });
+
+        // Keep track of shown recommendations to avoid repetition
+        let shownRecommendations = new Set();
+        
+        // Helper function to process and display a link
+        function processLink(category, link, container, displayedUrls) {
+            // Mark this URL as displayed and shown
+            displayedUrls.add(link.url);
+            shownRecommendations.add(link.url);
+            
+            // Extract domain from URL
+            let domain = '';
+            try {
+                domain = new URL(link.url).hostname;
+            } catch (e) {
+                console.warn('Invalid URL:', link.url);
+                domain = 'unknown-source';
+            }
+            
+            // Extract title - Use first 100 chars if title is too long
+            const title = link.title || link.url;
+            const displayTitle = title.length > 100 ? title.substring(0, 97) + '...' : title;
+            
+            // Create link item
+            const linkItem = document.createElement('div');
+            linkItem.className = 'link-item';
+            linkItem.innerHTML = `
+                <a href="${link.url}" onclick="openInBrowser('${link.url}'); return false;">
+                    ${displayTitle}
+                </a>
+                <div class="link-meta">
+                    <span class="link-source">${domain}</span>
+                    ${link.score ? `<span class="link-score">Match: ${Math.round(link.score * 100)}%</span>` : ''}
+                </div>
+            `;
+            
+            return linkItem;
+        }
+        
+        // Helper function to shuffle array
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+        
+        // Helper function to deduplicate links
+        function deduplicateLinks(links) {
+            const seen = new Set();
+            const titleSimilarity = new Map();
+            
+            return links.filter(link => {
+                // Skip if URL already seen
+                if (seen.has(link.url)) return false;
+                seen.add(link.url);
+                
+                // Check for very similar titles (duplicate content with different URLs)
+                if (link.title) {
+                    const normalizedTitle = link.title.toLowerCase()
+                        .replace(/[^a-z0-9\s]/g, '')  // Remove special chars
+                        .replace(/\s+/g, ' ')        // Normalize whitespace
+                        .trim();
+                    
+                    // Skip if we've seen a very similar title
+                    for (const [existingTitle, existingUrl] of titleSimilarity.entries()) {
+                        if (existingTitle.includes(normalizedTitle) || 
+                            normalizedTitle.includes(existingTitle)) {
+                            console.log(`Skipping similar item: "${link.title}" similar to "${existingUrl}"`);
+                            return false;
+                        }
+                    }
+                    
+                    titleSimilarity.set(normalizedTitle, link.title);
+                }
+                
+                return true;
+            });
+        }
+        
+        // Modified loadRecommendations to accept a forceRefresh parameter
+        async function loadRecommendations(forceRefresh = false) {
+            try {
+                const container = document.getElementById('recommendations-container');
+                container.innerHTML = '<div class="no-recommendations">Loading recommendations...</div>';
+
+                // Reset shown recommendations if force refresh
+                if (forceRefresh) {
+                    console.log('Force refreshing recommendations');
+                    shownRecommendations.clear();
+                }
+                
+                // Reset shown recommendations after 30 items to avoid exhausting all options
+                if (shownRecommendations.size > 30) {
+                    console.log('Resetting shown recommendations history');
+                    shownRecommendations.clear();
+                }
+
+                const result = await ipcRenderer.invoke('get-recommendations', { 
+                    exclude: Array.from(shownRecommendations),
+                    forceRefresh: forceRefresh 
+                });
+                
+                console.log('Received recommendations:', result);
+
+                if (!result.recommendations || Object.keys(result.recommendations).length === 0) {
+                    container.innerHTML = '<div class="no-recommendations">No recommendations available. Please browse more to get personalized suggestions.</div>';
+                    return;
+                }
+
+                // Clear container
+                container.innerHTML = '';
+
+                // Track URLs to avoid displaying duplicates across categories
+                const displayedUrls = new Set();
+                
+                // Process each category
+                Object.entries(result.recommendations).forEach(([category, links]) => {
+                    if (!links || links.length === 0) return;
+                    
+                    // Create category section
+                        const categorySection = document.createElement('div');
+                        categorySection.className = 'category-section';
+                    
+                    // Add category title
+                    const titleEl = document.createElement('h3');
+                    titleEl.className = 'category-title';
+                    titleEl.textContent = category;
+                    categorySection.appendChild(titleEl);
+                    
+                    // Create links container
+                    const linksContainer = document.createElement('div');
+                    linksContainer.className = 'category-links';
+                    
+                    // Deduplicate links - some may have the same URL or very similar titles
+                    const uniqueLinks = deduplicateLinks(links);
+                    
+                    // Display up to 3 links per category
+                    let displayCount = 0;
+                    const maxDisplayPerCategory = 3;
+                    
+                    // First pass: filter out already shown recommendations
+                    let availableLinks = uniqueLinks.filter(link => 
+                        !shownRecommendations.has(link.url) && !displayedUrls.has(link.url)
+                    );
+                    
+                    // If no new links available, use any links
+                    if (availableLinks.length === 0) {
+                        console.log(`No new recommendations for category: ${category}`);
+                        availableLinks = uniqueLinks;
+                    }
+                    
+                    // Randomize the order
+                    availableLinks = shuffleArray(availableLinks);
+                    
+                    // Add links to the category
+                    for (const link of availableLinks) {
+                        if (displayCount >= maxDisplayPerCategory) break;
+                        
+                        // Skip if this URL has been displayed in another category
+                        if (displayedUrls.has(link.url)) continue;
+                        
+                        // Process and display the link
+                        const linkElement = processLink(category, link, container, displayedUrls);
+                        linksContainer.appendChild(linkElement);
+                        displayCount++;
+                    }
+                    
+                    // If we displayed any links, add the category to the container
+                    if (displayCount > 0) {
+                        categorySection.appendChild(linksContainer);
+                        container.appendChild(categorySection);
+                    }
+                });
+                
+                // If no recommendations were displayed, show message
+                if (container.children.length === 0) {
+                    container.innerHTML = '<div class="no-recommendations">No new recommendations available. Try again later.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading recommendations:', error);
+                document.getElementById('recommendations-container').innerHTML = 
+                    '<div class="no-recommendations">Error loading recommendations. Please try again later.</div>';
+            }
+        }
+
+        // Function to open URLs in default browser
+        function openInBrowser(url) {
+            shell.openExternal(url).catch(err => {
+                console.error('Error opening URL:', err);
+            });
+        }
+
+        // Load recommendations when page loads
+        document.addEventListener('DOMContentLoaded', loadRecommendations);
+
+        // Add refresh button handler
+        document.querySelector('#refresh-button').addEventListener('click', loadRecommendations);
+
+        // Add event listener for the save button in email section
+        document.addEventListener('DOMContentLoaded', () => {
+            const saveButton = document.getElementById('save-email-data');
+            const gmailDraftButton = document.getElementById('save-gmail-draft');
+            let generatedEmailContent = '';
+            
+            if (saveButton) {
+                saveButton.addEventListener('click', () => {
+                    // Get values from the inputs
+                    const toEmail = document.getElementById('email-to').value;
+                    const promptText = document.getElementById('email-prompt').value;
+                    
+                    if (!toEmail || !promptText) {
+                        alert('Please fill in both the To field and the Prompt field');
+                        return;
+                    }
+                    
+                    // Change button text to show processing
+                    saveButton.textContent = 'Generating...';
+                    saveButton.disabled = true;
+                    
+                    // Disable Gmail draft button during generation
+                    gmailDraftButton.disabled = true;
+                    
+                    // Set up the path to the Python script
+                    const scriptPath = path.join(__dirname, 'email', 'prompttest1.py');
+                    
+                    // Run the Python script with the provided arguments
+                    const pythonProcess = spawn('/home/Aritra/programming/assistant/venv/bin/python', [
+                        scriptPath,
+                        '--recipient', toEmail,
+                        '--prompt', promptText
+                    ]);
+                    
+                    let outputData = '';
+                    let errorData = '';
+                    
+                    // Collect output from the script
+                    pythonProcess.stdout.on('data', (data) => {
+                        outputData += data.toString();
+                    });
+                    
+                    // Collect any errors
+                    pythonProcess.stderr.on('data', (data) => {
+                        errorData += data.toString();
+                    });
+                    
+                    // When the process completes
+                    pythonProcess.on('close', (code) => {
+                        saveButton.textContent = 'Generate Email';
+                        saveButton.disabled = false;
+                        
+                        if (code !== 0) {
+                            console.error('Error running script:', errorData);
+                            alert('Error generating email. Please check console for details.');
+                            return;
+                        }
+                        
+                        // Extract the generated email from the output
+                        const emailMatch = outputData.match(/Generated Email:\s*([\s\S]*)/);
+                        
+                        if (emailMatch && emailMatch[1]) {
+                            // Clean up the content - handle potential JSON format
+                            let rawContent = emailMatch[1].trim();
+                            
+                            // Check if the content is in JSON format and extract the actual email text
+                            try {
+                                if (rawContent.includes('content="')) {
+                                    // Extract content between content=" and "
+                                    const contentMatch = rawContent.match(/content="([\s\S]*?)"(\s+additional_kwargs|\s+response_metadata|$)/);
+                                    if (contentMatch && contentMatch[1]) {
+                                        // Replace escape sequences with actual line breaks
+                                        rawContent = contentMatch[1].replace(/\\n/g, '\n');
+                                    }
+                                } else if (rawContent.startsWith('{') && rawContent.endsWith('}')) {
+                                    // If it's JSON, parse it and extract the content
+                                    const parsedContent = JSON.parse(rawContent);
+                                    if (parsedContent.content) {
+                                        rawContent = parsedContent.content;
+                                    }
+                                }
+                            } catch (e) {
+                                console.log('Not JSON formatted content, using as is');
+                            }
+                            
+                            generatedEmailContent = rawContent;
+                        } else {
+                            generatedEmailContent = 'Could not extract the generated email.';
+                        }
+                        
+                        // Display the result
+                        const resultElement = document.getElementById('email-result');
+                        const contentElement = document.getElementById('email-content');
+                        
+                        contentElement.textContent = generatedEmailContent;
+                        resultElement.style.display = 'block';
+                        
+                        // Enable the Gmail draft button
+                        if (generatedEmailContent && generatedEmailContent !== 'Could not extract the generated email.') {
+                            gmailDraftButton.disabled = false;
+                            
+                            // Track email generation activity when email is successfully generated
+                            const toEmail = document.getElementById('email-to').value;
+                            const promptText = document.getElementById('email-prompt').value;
+                            
+                            ipcRenderer.send('email-generated', {
+                                subject: `Email about: ${promptText.substring(0, 50)}${promptText.length > 50 ? '...' : ''}`,
+                                recipient: toEmail,
+                                type: 'generation'
+                            });
+                        }
+                    });
+                });
+            }
+            
+            // Add event listener for the Gmail draft button
+            if (gmailDraftButton) {
+                gmailDraftButton.addEventListener('click', async () => {
+                    // Get recipient email
+                    const toEmail = document.getElementById('email-to').value;
+                    const promptText = document.getElementById('email-prompt').value;
+                    
+                    // Disable button during API call
+                    gmailDraftButton.textContent = 'Saving...';
+                    gmailDraftButton.disabled = true;
+                    
+                    try {
+                        // Call the main process to create the draft
+                        const result = await ipcRenderer.invoke('create-gmail-draft', {
+                            to: toEmail,
+                            subject: `Email about: ${promptText.substring(0, 50)}${promptText.length > 50 ? '...' : ''}`,
+                            body: generatedEmailContent
+                        });
+                        
+                        if (result.success) {
+                            alert('Email saved to Gmail drafts successfully!');
+                            
+                            // Track the email generation activity
+                            ipcRenderer.send('email-generated', {
+                                subject: `Email about: ${promptText.substring(0, 50)}${promptText.length > 50 ? '...' : ''}`,
+                                recipient: toEmail
+                            });
+                        } else {
+                            alert(`Error saving to Gmail: ${result.error}`);
+                            console.error('Error saving to Gmail:', result.error);
+                        }
+                    } catch (error) {
+                        alert('Error saving to Gmail drafts. See console for details.');
+                        console.error('Error saving to Gmail drafts:', error);
+                    } finally {
+                        gmailDraftButton.textContent = 'Save to Gmail Draft';
+                        gmailDraftButton.disabled = false;
+                    }
+                });
+            }
+        });
+        
+        // Reply section functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const generateReplyButton = document.getElementById('generate-reply');
+            const sendReplyButton = document.getElementById('send-reply');
+            const refreshEmailsButton = document.getElementById('refresh-emails');
+            const backToListButton = document.getElementById('back-to-list');
+            const emailsList = document.getElementById('emails-list');
+            const emailDetails = document.getElementById('email-details');
+            const emailsLoading = document.getElementById('emails-loading');
+            
+            // Current selected email data
+            let currentEmail = null;
+            
+            // Function to format date
+            const formatDate = (dateString) => {
+                const date = new Date(dateString);
+                return date.toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+            };
+            
+            // Function to extract sender name from email address
+            const extractSenderName = (sender) => {
+                // Check if format is "Name <email>"
+                const match = sender.match(/(.*?)\s*<(.+?)>/);
+                if (match && match[1]) {
+                    return match[1].trim();
+                }
+                // Otherwise return the email address
+                return sender;
+            };
+            
+            // Function to load emails
+            const loadEmails = async (forceRefresh = false) => {
+                try {
+                    // Update status text
+                    const statusText = document.getElementById('emails-status-text');
+                    if (forceRefresh) {
+                        statusText.textContent = 'Refreshing emails...';
+                    } else {
+                        statusText.textContent = 'Loading emails...';
+                    }
+                    
+                    // Show loading state
+                    emailsList.style.display = 'none';
+                    emailDetails.style.display = 'none';
+                    emailsLoading.style.display = 'flex';
+                    
+                    // Fetch emails from the past day
+                    const result = await ipcRenderer.invoke('fetch-recent-emails', { 
+                        daysBack: 1,
+                        forceRefresh: forceRefresh
+                    });
+                    
+                    // Hide loading state
+                    emailsLoading.style.display = 'none';
+                    emailsList.style.display = 'block';
+                    
+                    if (!result.success) {
+                        emailsList.innerHTML = `
+                            <div class="no-emails">
+                                <i class="fas fa-exclamation-circle mb-2 text-red-500 text-xl"></i>
+                                <p>Error loading emails: ${result.error}</p>
+                            </div>
+                        `;
+                        statusText.textContent = 'Failed to load emails';
+                        return;
+                    }
+                    
+                    if (!result.emails || result.emails.length === 0) {
+                        emailsList.innerHTML = `
+                            <div class="no-emails">
+                                <i class="fas fa-inbox mb-2 text-blue-400 text-xl"></i>
+                                <p>No emails found in the past day</p>
+                            </div>
+                        `;
+                        statusText.textContent = 'No recent emails found';
+                        return;
+                    }
+                    
+                    // Update status text based on whether we used cached data
+                    if (result.cached) {
+                        statusText.textContent = `Showing cached emails (last updated ${new Date().toLocaleTimeString()})`;
+                    } else if (result.newCount > 0) {
+                        statusText.textContent = `Found ${result.newCount} new emails (updated ${new Date().toLocaleTimeString()})`;
+                    } else {
+                        statusText.textContent = `No new emails found (updated ${new Date().toLocaleTimeString()})`;
+                    }
+                    
+                    // Clear emails list
+                    emailsList.innerHTML = '';
+                    
+                    // Add each email to the list
+                    result.emails.forEach(email => {
+                        const emailElement = document.createElement('div');
+                        emailElement.className = 'email-item';
+                        emailElement.innerHTML = `
+                            <div class="email-item-header">
+                                <div class="email-sender">${extractSenderName(email.from)}</div>
+                                <div class="email-time">${formatDate(email.date)}</div>
+                            </div>
+                            <div class="email-subject">${email.subject}</div>
+                            <div class="email-preview">${email.snippet}</div>
+                        `;
+                        
+                        // Add click handler
+                        emailElement.addEventListener('click', () => {
+                            showEmailDetails(email);
+                        });
+                        
+                        emailsList.appendChild(emailElement);
+                    });
+                } catch (error) {
+                    console.error('Error loading emails:', error);
+                    emailsLoading.style.display = 'none';
+                    emailsList.style.display = 'block';
+                    emailsList.innerHTML = `
+                        <div class="no-emails">
+                            <i class="fas fa-exclamation-circle mb-2 text-red-500 text-xl"></i>
+                            <p>Error loading emails. Please try again later.</p>
+                        </div>
+                    `;
+                    document.getElementById('emails-status-text').textContent = 'Error loading emails';
+                }
+            };
+            
+            // Function to show email details
+            const showEmailDetails = (email) => {
+                // Store current email
+                currentEmail = email;
+                
+                // Update email details
+                document.getElementById('email-subject').textContent = email.subject;
+                document.getElementById('email-from').textContent = `From: ${email.from}`;
+                document.getElementById('email-date').textContent = formatDate(email.date);
+                document.getElementById('email-body').textContent = email.body;
+                
+                // Clear reply textarea
+                document.getElementById('reply-text').value = '';
+                
+                // Show email details, hide email list
+                emailsList.style.display = 'none';
+                emailDetails.style.display = 'block';
+            };
+            
+            // Function to generate AI reply
+            const generateAIReply = async () => {
+                if (!currentEmail) {
+                    alert('No email selected');
+                    return;
+                }
+                
+                // Get selected tone and prompt
+                const tone = document.getElementById('reply-tone').value;
+                const prompt = document.getElementById('reply-prompt').value;
+                const replyTextarea = document.getElementById('reply-text');
+                
+                // Disable button and show loading state
+                generateReplyButton.disabled = true;
+                generateReplyButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+                
+                try {
+                    // Generate reply using AI
+                    const result = await ipcRenderer.invoke('generate-reply', {
+                        originalEmail: currentEmail.body, // Using the correct parameter name
+                        prompt: `${tone} tone. ${prompt}`.trim(),
+                        recipient: currentEmail.from
+                    });
+                    
+                    // Track the reply generation activity
+                    ipcRenderer.send('reply-generated', {
+                        subject: currentEmail.subject,
+                        recipient: currentEmail.from
+                    });
+                    
+                    // Update reply textarea with generated content
+                    replyTextarea.value = result;
+                } catch (error) {
+                    console.error('Error generating reply:', error);
+                    alert('Error generating reply. Please try again.');
+                } finally {
+                    // Re-enable button and restore text
+                    generateReplyButton.disabled = false;
+                    generateReplyButton.innerHTML = 'Generate AI Reply';
+                }
+            };
+            
+            // Function to send reply
+            const sendReply = async () => {
+                if (!currentEmail) {
+                    alert('No email selected');
+                    return;
+                }
+                
+                const replyText = document.getElementById('reply-text').value.trim();
+                if (!replyText) {
+                    alert('Please enter a reply message');
+                    return;
+                }
+                
+                // Extract email address from the From field
+                const emailRegex = /<(.+?)>|(.+)/;
+                const match = currentEmail.from.match(emailRegex);
+                const toEmail = match ? (match[1] || match[2]) : '';
+                
+                if (!toEmail) {
+                    alert('Cannot determine recipient email address');
+                    return;
+                }
+                
+                // Disable button and show loading state
+                sendReplyButton.disabled = true;
+                sendReplyButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+                
+                try {
+                    // Create subject with Re: prefix if not already present
+                    let subject = currentEmail.subject;
+                    if (!subject.startsWith('Re:')) {
+                        subject = 'Re: ' + subject;
+                    }
+                    
+                    // Send reply
+                    const result = await ipcRenderer.invoke('send-email-reply', {
+                        threadId: currentEmail.threadId,
+                        to: toEmail,
+                        subject: subject,
+                        body: replyText,
+                        replyToMessageId: currentEmail.messageId
+                    });
+                    
+                    if (result.success) {
+                        alert('Reply sent successfully!');
+                        
+                        // Track the reply sent activity
+                        ipcRenderer.send('email-generated', {
+                            subject: subject,
+                            recipient: toEmail,
+                            isReply: true
+                        });
+                        
+                        // Go back to email list and refresh
+                        backToListButton.click();
+                        loadEmails();
+                    } else {
+                        alert(`Error sending reply: ${result.error}`);
+                    }
+                } catch (error) {
+                    console.error('Error sending reply:', error);
+                    alert('Error sending reply. Please try again.');
+                } finally {
+                    // Re-enable button and restore text
+                    sendReplyButton.disabled = false;
+                    sendReplyButton.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reply';
+                }
+            };
+            
+            // Add event listeners
+            if (refreshEmailsButton) {
+                refreshEmailsButton.addEventListener('click', () => {
+                    // Force refresh when button is clicked
+                    loadEmails(true);
+                });
+            }
+            
+            if (backToListButton) {
+                backToListButton.addEventListener('click', () => {
+                    emailDetails.style.display = 'none';
+                    emailsList.style.display = 'block';
+                    currentEmail = null;
+                });
+            }
+            
+            if (generateReplyButton) {
+                generateReplyButton.addEventListener('click', generateAIReply);
+            }
+            
+            if (sendReplyButton) {
+                sendReplyButton.addEventListener('click', sendReply);
+            }
+            
+            // Load emails when tab is selected
+            menuItems.forEach(item => {
+                if (item.dataset.section === 'reply') {
+                    item.addEventListener('click', () => {
+                        // Load emails without forcing refresh when tab is selected
+                        loadEmails(false);
+                    });
+                }
+            });
+        });
+
+        // When the process completes
+        ipcRenderer.on('assistant-reply', (event, data) => {
+            // Remove typing indicator
+            removeTypingIndicator();
+            addMessage(data, 'assistant');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
+
+        // Function to extract date and time information from description
+        function extractDateTimeInfo(description) {
+            // This is a simplified parser that handles common date formats
+            const result = {
+                date: null,
+                time: null,
+                duration: 1 // Default 1 hour
+            };
+            
+            const lowerDesc = description.toLowerCase();
+            const now = new Date();
+            
+            // Handle day expressions
+            if (lowerDesc.includes('today')) {
+                result.date = new Date(now);
+            } else if (lowerDesc.includes('tomorrow')) {
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                result.date = tomorrow;
+            } else if (lowerDesc.includes('next week')) {
+                const nextWeek = new Date(now);
+                nextWeek.setDate(nextWeek.getDate() + 7);
+                result.date = nextWeek;
+            }
+            
+            // Handle month/day patterns like "20th May" or "May 20th"
+            const monthNames = ["january", "february", "march", "april", "may", "june", 
+                              "july", "august", "september", "october", "november", "december"];
+            const shortMonthNames = ["jan", "feb", "mar", "apr", "may", "jun", 
+                                    "jul", "aug", "sep", "oct", "nov", "dec"];
+            
+            // Specifically check for "at X" patterns which are common in natural language descriptions
+            const atDatePattern = /\bat\s+(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*/i;
+            const atDateMatch = description.match(atDatePattern);
+            
+            if (atDateMatch) {
+                console.log("Found 'at DATE' pattern:", atDateMatch[0]);
+                // The complete "at DATE" match - now we need to extract month and day
+                const completeMatch = atDateMatch[0];
+                
+                // Find which month is mentioned
+                let matchedMonth = -1;
+                for (let i = 0; i < shortMonthNames.length; i++) {
+                    if (completeMatch.toLowerCase().includes(shortMonthNames[i])) {
+                        matchedMonth = i;
+                        break;
+                    }
+                }
+                
+                if (matchedMonth !== -1) {
+                    // We've found the month, now extract the day
+                    const day = parseInt(atDateMatch[1]);
+                    if (!isNaN(day) && day >= 1 && day <= 31) {
+                        const dateObj = new Date(now.getFullYear(), matchedMonth, day);
+                        
+                        // If date has passed, use next year
+                        if (dateObj < now) {
+                            dateObj.setFullYear(dateObj.getFullYear() + 1);
+                        }
+                        
+                        result.date = dateObj;
+                        console.log("Extracted date from 'at DATE' pattern:", dateObj.toDateString());
+                    }
+                }
+            }
+            
+            // Common date patterns if not already found
+            if (!result.date) {
+                for (let i = 0; i < monthNames.length; i++) {
+                    const monthName = monthNames[i];
+                    const shortName = shortMonthNames[i];
+                    
+                    // Look for patterns like "20th May", "20 May", etc.
+                    const dayFirstPattern = new RegExp(`(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:${monthName}|${shortName})`, 'i');
+                    const dayFirstMatch = lowerDesc.match(dayFirstPattern);
+                    
+                    if (dayFirstMatch) {
+                        const day = parseInt(dayFirstMatch[1]);
+                        const dateObj = new Date(now.getFullYear(), i, day);
+                        
+                        // If date has passed, use next year
+                        if (dateObj < now) {
+                            dateObj.setFullYear(dateObj.getFullYear() + 1);
+                        }
+                        
+                        result.date = dateObj;
+                        break;
+                    }
+                    
+                    // Look for patterns like "May 20th", "May 20", etc.
+                    const monthFirstPattern = new RegExp(`(?:${monthName}|${shortName})\\s+(\\d{1,2})(?:st|nd|rd|th)?`, 'i');
+                    const monthFirstMatch = lowerDesc.match(monthFirstPattern);
+                    
+                    if (monthFirstMatch) {
+                        const day = parseInt(monthFirstMatch[1]);
+                        const dateObj = new Date(now.getFullYear(), i, day);
+                        
+                        // If date has passed, use next year
+                        if (dateObj < now) {
+                            dateObj.setFullYear(dateObj.getFullYear() + 1);
+                        }
+                        
+                        result.date = dateObj;
+                        break;
+                    }
+                }
+            }
+            
+            // Try to extract time - specially look for "from X" patterns
+            const fromTimePattern = /\bfrom\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i;
+            const fromTimeMatch = description.match(fromTimePattern);
+            
+            if (fromTimeMatch) {
+                console.log("Found 'from TIME' pattern:", fromTimeMatch[0]);
+                let hours = parseInt(fromTimeMatch[1]);
+                const minutes = fromTimeMatch[2] ? parseInt(fromTimeMatch[2]) : 0;
+                const period = fromTimeMatch[3] ? fromTimeMatch[3].toLowerCase() : null;
+                
+                // Handle AM/PM
+                if (period === 'pm' && hours < 12) {
+                    hours += 12;
+                } else if (period === 'am' && hours === 12) {
+                    hours = 0;
+                }
+                
+                result.time = `${hours}:${minutes}`;
+                console.log("Extracted time from 'from TIME' pattern:", result.time);
+            }
+            
+            // Fall back to other time patterns if not found
+            if (!result.time) {
+                // Common time patterns like "3pm", "15:00", "3:30pm"
+                const timePattern = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i;
+                const timeMatch = lowerDesc.match(timePattern);
+                
+                if (timeMatch) {
+                    let hours = parseInt(timeMatch[1]);
+                    const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+                    const period = timeMatch[3] ? timeMatch[3].toLowerCase() : null;
+                    
+                    // Handle AM/PM
+                    if (period === 'pm' && hours < 12) {
+                        hours += 12;
+                    } else if (period === 'am' && hours === 12) {
+                        hours = 0;
+                    }
+                    
+                    result.time = `${hours}:${minutes}`;
+                }
+            }
+            
+            // Try to extract duration
+            // Look for patterns like "for 2 hours", "30 minutes"
+            const durationHoursPattern = /\b(?:for\s+)?(\d+)\s+hour(?:s)?\b/i;
+            const durationMinsPattern = /\b(?:for\s+)?(\d+)\s+minute(?:s)?\b/i;
+            
+            const hoursMatch = lowerDesc.match(durationHoursPattern);
+            const minsMatch = lowerDesc.match(durationMinsPattern);
+            
+            if (hoursMatch) {
+                result.duration = parseInt(hoursMatch[1]);
+            } else if (minsMatch) {
+                result.duration = parseInt(minsMatch[1]) / 60;
+            }
+            
+            return result;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const createEventBtn = document.getElementById('create-event-btn');
+            const syncEventsBtn = document.getElementById('sync-events-btn');
+            const eventDescription = document.getElementById('event-description');
+            const eventCreationStatus = document.getElementById('event-creation-status');
+            const eventCreationMessage = document.getElementById('event-creation-message');
+            const eventDetailsResult = document.getElementById('event-details-result');
+            const eventDetailsContent = document.getElementById('event-details-content');
+            const eventSyncStatus = document.getElementById('event-sync-status');
+            const eventLink = document.getElementById('event-link');
+            const eventLinkContainer = document.getElementById('event-link-container');
+            
+            if (createEventBtn) {
+                createEventBtn.addEventListener('click', async () => {
+                    const description = eventDescription.value.trim();
+                    if (!description) {
+                        alert('Please enter an event description');
+                        return;
+                    }
+                    
+                    // Show status
+                    eventCreationStatus.classList.remove('hidden');
+                    eventDetailsResult.classList.add('hidden');
+                    createEventBtn.disabled = true;
+                    eventCreationMessage.textContent = 'Creating event...';
+                    eventCreationMessage.className = ''; // Reset any error classes
+                    
+                    try {
+                        // Instead of calling main process, create event locally
+                        const now = new Date();
+                        
+                        // Parse the description to extract event details
+                        console.log("Parsing event description:", description);
+                        const descLines = description.split('\n');
+                        const eventTitle = descLines[0].trim();
+                        
+                        // Extract date and time info
+                        console.log("Extracting date/time info from:", description);
+                        let dateTimeInfo = extractDateTimeInfo(description);
+                        console.log("Extracted date/time info:", dateTimeInfo);
+                        
+                        if (!dateTimeInfo.date && !dateTimeInfo.time) {
+                            console.warn("Could not extract date or time from description");
+                            eventCreationMessage.textContent = 'Could not parse date/time. Using tomorrow at noon.';
+                            eventCreationMessage.className = 'text-yellow-500';
+                        }
+                        
+                        // Use extracted date or default to tomorrow
+                        let eventDate = dateTimeInfo.date ? new Date(dateTimeInfo.date) : new Date(now);
+                        if (!dateTimeInfo.date) {
+                            eventDate.setDate(eventDate.getDate() + 1);
+                            console.log("Using default date (tomorrow):", eventDate.toDateString());
+                        }
+                        
+                        // Use extracted time or default to noon
+                        if (dateTimeInfo.time) {
+                            const [hours, minutes] = dateTimeInfo.time.split(':').map(Number);
+                            eventDate.setHours(hours, minutes, 0, 0);
+                            console.log("Using extracted time:", hours + ":" + minutes);
+                        } else {
+                            eventDate.setHours(12, 0, 0, 0);
+                            console.log("Using default time (noon)");
+                        }
+                        
+                        // Use extracted duration or default to 1 hour
+                        let durationHours = dateTimeInfo.duration || 1;
+                        
+                        // Create end date
+                        const eventEndDate = new Date(eventDate);
+                        eventEndDate.setHours(eventDate.getHours() + Math.floor(durationHours));
+                        eventEndDate.setMinutes(eventDate.getMinutes() + Math.round((durationHours % 1) * 60));
+                        
+                        console.log(`Event will be from ${eventDate.toLocaleString()} to ${eventEndDate.toLocaleString()}`);
+                        
+                        // Create a simple event object
+                        const eventId = 'local_' + Date.now();
+                        const newEvent = {
+                            id: eventId,
+                            summary: eventTitle || 'New Event',
+                            description: description,
+                            start: {
+                                dateTime: eventDate.toISOString(),
+                                date: eventDate.toISOString().split('T')[0]
+                            },
+                            end: {
+                                dateTime: eventEndDate.toISOString(),
+                                date: eventDate.toISOString().split('T')[0]
+                            }
+                        };
+                        
+                        console.log("Created event:", newEvent);
+                        
+                        // Get existing events from localStorage
+                        const existingEvents = JSON.parse(localStorage.getItem('localCalendarEvents') || '[]');
+                        
+                        // Add new event and save back to localStorage
+                        existingEvents.push(newEvent);
+                        localStorage.setItem('localCalendarEvents', JSON.stringify(existingEvents));
+                        
+                        // Update the global events array
+                        events = existingEvents;
+                        
+                            eventCreationMessage.textContent = 'Event created successfully!';
+                            
+                            // Display event details
+                        const details = {
+                            id: eventId,
+                            name: newEvent.summary,
+                            date: newEvent.start.date,
+                            time: new Date(newEvent.start.dateTime).toLocaleTimeString() + ' - ' + 
+                                  new Date(newEvent.end.dateTime).toLocaleTimeString(),
+                            description: newEvent.description
+                        };
+                        
+                                eventDetailsContent.innerHTML = `
+                                    <div class="mb-2"><strong>Event:</strong> ${details.name || 'Unnamed event'}</div>
+                                    <div class="mb-2"><strong>Date:</strong> ${details.date || 'Not specified'}</div>
+                                    <div class="mb-2"><strong>Time:</strong> ${details.time || 'Not specified'}</div>
+                                    ${details.description ? `<div class="mb-2"><strong>Description:</strong> ${details.description}</div>` : ''}
+                                `;
+                                
+                                eventDetailsResult.classList.remove('hidden');
+                        
+                        // Display local storage status
+                        if (document.getElementById('event-sync-status')) {
+                            const syncStatus = document.getElementById('event-sync-status');
+                            syncStatus.querySelector('.sync-status').innerHTML = `
+                                <i class="fas fa-check-circle mr-1"></i>
+                                <span class="text-blue-400">Stored locally</span>
+                            `;
+                            syncStatus.classList.remove('hidden');
+                        }
+                        
+                        // Hide link container since it's a local event
+                                eventLinkContainer.classList.add('hidden');
+                            
+                            // Clear the input
+                            eventDescription.value = '';
+                            
+                            // Reload calendar to show the new event
+                        renderCalendar();
+                        
+                        // Highlight the day with the new event
+                        highlightEventDay(details.date, details.id);
+                        
+                    } catch (error) {
+                        console.error('Error creating event:', error);
+                        eventCreationMessage.textContent = 'Error creating event: ' + error.message;
+                        eventCreationMessage.className = 'text-red-500';
+                    } finally {
+                        createEventBtn.disabled = false;
+                    }
+                });
+            }
+        });
+
+        // Function to highlight the day with a new event
+        function highlightEventDay(dateStr, eventId) {
+            try {
+                console.log(`Highlighting day for date: ${dateStr}, event: ${eventId}`);
+                
+                // Parse the date string
+                const date = new Date(dateStr);
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const day = date.getDate();
+                
+                // Check if we need to navigate to a different month
+                if (currentDate.getMonth() !== month || currentDate.getFullYear() !== year) {
+                    console.log(`Navigating to ${month}/${year} from ${currentDate.getMonth()}/${currentDate.getFullYear()}`);
+                    // Update current date to match event date
+                    currentDate = new Date(year, month, 1);
+                    // Re-render the calendar with the new month
+                    renderCalendar();
+                }
+                
+                // Find the calendar day element
+                const calendarDayElements = document.querySelectorAll('.calendar-day:not(.empty)');
+                let dayElement = null;
+                
+                for (const element of calendarDayElements) {
+                    if (parseInt(element.textContent) === day) {
+                        dayElement = element;
+                        break;
+                    }
+                }
+                
+                if (dayElement) {
+                    console.log(`Found day element for day ${day}`);
+                    
+                    // Remove highlight from all days first
+                    document.querySelectorAll('.calendar-day').forEach(d => {
+                        d.classList.remove('new-event');
+                        d.classList.remove('active');
+                    });
+                    
+                    // Add highlight classes
+                    dayElement.classList.add('active');
+                    dayElement.classList.add('new-event');
+                    
+                    // Scroll the calendar to make sure the day is visible
+                    dayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Also highlight the event in the event list
+                    renderEvents(date, eventId);
+                    
+                    // Remove the highlight after a few seconds
+                    setTimeout(() => {
+                        dayElement.classList.remove('new-event');
+                    }, 5000);
+                } else {
+                    console.warn(`Could not find day element for day ${day}`);
+                }
+            } catch (error) {
+                console.error('Error in highlightEventDay:', error);
+            }
+        }
+
+        // Event listeners for the browser section
+        document.addEventListener('DOMContentLoaded', () => {
+            const refreshButton = document.getElementById('refresh-button');
+            
+            if (refreshButton) {
+                refreshButton.addEventListener('click', () => {
+                    // Force regeneration of recommendations when refresh is clicked
+                    loadRecommendations(true);
+                });
+            }
+        });
+
+        async function generateEmailReply() {
+            const replyButton = document.querySelector('#generate-reply-btn');
+            const originalEmailInput = document.querySelector('#original-email');
+            const promptInput = document.querySelector('#reply-prompt');
+            const recipientInput = document.querySelector('#recipient-email');
+            const generatedReplyInput = document.querySelector('#generated-reply');
+            
+            // Validate inputs
+            if (!originalEmailInput || !originalEmailInput.value.trim()) {
+                alert('Please enter the original email content');
+                return;
+            }
+
+            const originalEmail = originalEmailInput.value.trim();
+            const prompt = promptInput ? promptInput.value.trim() : '';
+            const recipient = recipientInput ? recipientInput.value.trim() : '';
+            
+            try {
+                replyButton.disabled = true;
+                replyButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+                
+                const reply = await window.electronAPI.generateReply({
+                    originalEmail,
+                    prompt,
+                    recipient
+                });
+                
+                if (generatedReplyInput) {
+                    generatedReplyInput.value = reply;
+                }
+            } catch (error) {
+                console.error('Error generating reply:', error);
+                alert('Error generating reply: ' + (error.message || 'Please try again.'));
+            } finally {
+                replyButton.disabled = false;
+                replyButton.innerHTML = '<i class="fas fa-reply"></i> Generate Reply';
+            }
+        }
+        
+        // Add event listener to the generate reply button
+        const replyButton = document.querySelector('#generate-reply-btn');
+        if (replyButton) {
+            replyButton.addEventListener('click', generateEmailReply);
+        }
+    </script>
+</body>
+</html> 
