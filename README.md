@@ -100,7 +100,7 @@ npm start
 Contributions are welcome! Please follow the standard guidelines for submitting issues and pull requests.
 
 ## License
-This project is licensed under the MIT License. See the `LICENSE` file for more details.
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/AryanMishra1789/SyncFlow/blob/main/LICENSE) file for more details.
 
 ---
 
